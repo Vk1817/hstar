@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -48,13 +49,18 @@
 </head>
 <body>
   <div class="video-container">
-    <video autoplay playsinline muted id="player" controls preload="metadata"></video>
+    <!-- ❌ removed muted -->
+    <video autoplay playsinline id="player" controls preload="metadata"></video>
   </div>
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       const video = document.getElementById("player");
       const source = "https://dillzy-streamm.americanhorrordream.workers.dev/live/abc123.m3u8";
+
+      // ✅ ensure sound
+      video.muted = false;
+      video.volume = 1;
 
       const defaultOptions = {
         autoplay: true,
@@ -75,6 +81,7 @@
             options: qualities,
             forced: true,
             onChange: q => {
+              if (!hls) return;
               hls.levels.forEach((level, index) => {
                 if (level.height === q) {
                   hls.currentLevel = index;
@@ -91,10 +98,11 @@
           }
         }, 3000);
 
-        // 🔊 AUTO UNMUTE (on first interaction)
+        // 🔊 FORCE UNMUTE ON FIRST INTERACTION (important for mobile)
         const unmute = () => {
           video.muted = false;
           video.volume = 1;
+          video.play().catch(()=>{});
           document.removeEventListener("click", unmute);
           document.removeEventListener("touchstart", unmute);
         };
@@ -113,7 +121,11 @@
 
         hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
           const availableQualities = data.levels.map(l => l.height).sort((a,b) => b - a);
-          video.play().catch(()=>{});
+
+          video.play().catch(() => {
+            // autoplay with sound blocked → wait for user
+          });
+
           setupPlayer(hls, availableQualities);
         });
 
